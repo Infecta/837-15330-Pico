@@ -4,11 +4,13 @@
 #include <string.h>
 
 #include "hardware/flash.h"
+#include "hardware/regs/addressmap.h"
 #include "hardware/sync.h"
 #include "pico/stdlib.h"
 
-#define CALIBRATION_MAGIC 0x41495243u // "AIRC"
-#define CALIBRATION_VERSION 1u
+// Flash storage shenanigans
+#define CALIBRATION_MAGIC 0x41495243 // "AIRC"
+#define CALIBRATION_VERSION 1
 
 #define CALIBRATION_FLASH_OFFSET \
     (PICO_FLASH_SIZE_BYTES - FLASH_SECTOR_SIZE)
@@ -29,8 +31,8 @@ static uint32_t crc32(const void *data, uint32_t length) {
         crc ^= bytes[i];
 
         for (uint8_t bit = 0; bit < 8; bit++) {
-            uint32_t mask = (uint32_t)-(int32_t)(crc & 1u);
-            crc = (crc >> 1) ^ (0xEDB88320u & mask);
+            uint32_t mask = (uint32_t)-(int32_t)(crc & 1);
+            crc = (crc >> 1) ^ (0xEDB88320 & mask);
         }
     }
 

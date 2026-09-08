@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "name": "Pico RP2040",
+            "compilerPath": "C:/Program Files/Arm/GNU Toolchain mingw-w64-x86_64-arm-none-eabi/bin/arm-none-eabi-gcc.exe",
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "C:/_pico-sdk/2.3.0/**",
+                "${workspaceFolder}/build/generated/**"
+            ],
+            "defines": [
+                "PICO_BOARD=pico"
+            ],
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-gcc-arm"
+        }
+    ],
+    "version": 4
+}

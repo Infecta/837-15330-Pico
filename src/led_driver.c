@@ -8,6 +8,7 @@
 #include "hardware/dma.h"
 #include "hardware/pio.h"
 #include "pico/stdlib.h"
+#include "pico/time.h"
 
 #include "sk6812.pio.h"
 
@@ -16,12 +17,12 @@
 #define LED_PIO_CLOCK_HZ 8000000.0f
 
 // Safe temporary limit while LEDs are powered from USB VBUS.
-#define LED_POWER_BUDGET_MA 100u
-#define LED_IDLE_CURRENT_MA 1u
-#define LED_CHANNEL_CURRENT_MA 12u
+#define LED_POWER_BUDGET_MA 100
+#define LED_IDLE_CURRENT_MA 1
+#define LED_CHANNEL_CURRENT_MA 12
 
 // Allows the last LED bits to leave the PIO and latch.
-#define LED_LATCH_TIME_US 400u
+#define LED_LATCH_TIME_US 400
 
 typedef enum {
     LED_WAITING_FOR_RESET,
@@ -56,7 +57,7 @@ static void limit_power(uint32_t pixels[LED_COUNT]) {
         LED_POWER_BUDGET_MA - (LED_COUNT * LED_IDLE_CURRENT_MA);
 
     uint32_t maximum_sum =
-        (available_ma * 255u) / LED_CHANNEL_CURRENT_MA;
+        (available_ma * 255) / LED_CHANNEL_CURRENT_MA;
 
     if (channel_sum <= maximum_sum || channel_sum == 0) {
         return;

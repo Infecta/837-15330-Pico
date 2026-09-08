@@ -2,18 +2,18 @@
 
 #include <string.h>
 
-#define IO4_COMMAND_SET_COMM_TIMEOUT  0x01u
-#define IO4_COMMAND_SET_SAMPLING_COUNT 0x02u
-#define IO4_COMMAND_CLEAR_STATUS      0x03u
-#define IO4_COMMAND_SET_GENERAL_OUTPUT 0x04u
-#define IO4_COMMAND_SET_PWM_OUTPUT    0x05u
-#define IO4_COMMAND_SET_UNIQUE_OUTPUT 0x41u
+#define IO4_COMMAND_SET_COMM_TIMEOUT  0x01
+#define IO4_COMMAND_SET_SAMPLING_COUNT 0x02
+#define IO4_COMMAND_CLEAR_STATUS      0x03
+#define IO4_COMMAND_SET_GENERAL_OUTPUT 0x04
+#define IO4_COMMAND_SET_PWM_OUTPUT    0x05
+#define IO4_COMMAND_SET_UNIQUE_OUTPUT 0x41
 
-#define IO4_STATUS_TIMEOUT_SET  0x10u
-#define IO4_STATUS_SAMPLING_SET 0x20u
+#define IO4_STATUS_TIMEOUT_SET  0x10
+#define IO4_STATUS_SAMPLING_SET 0x20
 
-#define IO4_BUTTON_TEST    (1u << 9)
-#define IO4_BUTTON_SERVICE (1u << 6)
+#define IO4_BUTTON_TEST    (1 << 9)
+#define IO4_BUTTON_SERVICE (1 << 6)
 
 _Static_assert(sizeof(io4_input_report_t) == 63,
                "IO4 input report must be exactly 63 bytes");
@@ -32,7 +32,7 @@ void io4_set_air_blocked(io4_state_t *state, uint8_t blocked_bitmap) {
     }
 
     state->air_blocked_bitmap =
-        blocked_bitmap & ((1u << IO4_AIR_CHANNEL_COUNT) - 1u);
+        blocked_bitmap & ((1 << IO4_AIR_CHANNEL_COUNT) - 1);
 }
 
 void io4_set_test_pressed(io4_state_t *state, bool pressed) {
@@ -119,18 +119,15 @@ void io4_build_input_report(const io4_state_t *state,
     report->coin[0] = state->coins[0];
     report->coin[1] = state->coins[1];
 
-    /*
-     * IO4 inputs are active-low:
-     * bit set   = air beam is clear
-     * bit clear = air beam is blocked
-     */
+    // Air inputs are active-low
+    // Don't ask me what they do because I don't know either lol
     static const uint16_t air_button_map[IO4_AIR_CHANNEL_COUNT][2] = {
-        {0,       1u << 11}, // Left A
-        {1u << 11, 0},       // Right A
-        {0,       1u << 12}, // Left B
-        {1u << 12, 0},       // Right B
-        {0,       1u << 13}, // Left C
-        {1u << 13, 0},       // Right C
+        {0, 1 << 11}, // Left A
+        {1 << 11, 0}, // Right A
+        {0, 1 << 12}, // Left B
+        {1 << 12, 0}, // Right B
+        {0, 1 << 13}, // Left C
+        {1 << 13, 0}, // Right C
     };
 
     for (uint8_t channel = 0; channel < IO4_AIR_CHANNEL_COUNT; channel++) {

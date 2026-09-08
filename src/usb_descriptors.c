@@ -14,7 +14,6 @@ static const tusb_desc_device_t device_descriptor = {
 
     .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
 
-    // Matches the working IO4 reference firmware.
     .idVendor = 0x0ca3,
     .idProduct = 0x0021,
     .bcdDevice = 0x0101,
@@ -98,7 +97,7 @@ static const uint8_t configuration_descriptor[] = {
 static const char *const string_descriptors[] = {
     (const char[]){0x09, 0x04}, // English (United States)
     "SEGA",
-    "slidrr",
+    "slidrr-psoc",
     "000001",
     "I/O CONTROL BD;15257;01;90;1831;6679A;00;GOUT=14_ADIN=8,E_ROTIN=4_COININ=2_SWIN=2,E_UQ1=41,6;",
     "slidrr Port",

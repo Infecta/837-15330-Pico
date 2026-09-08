@@ -12,10 +12,10 @@
 #include "uart_bridge.h"
 #include "usb_descriptors.h"
 
-#define TEST_PIN 4u
-#define IO4_REPORT_INTERVAL_MS 4u
-#define AIR_DIAGNOSTIC_CDC 1u
-#define AIR_DIAGNOSTIC_INTERVAL_MS 100u
+#define TEST_PIN 4
+#define IO4_REPORT_INTERVAL_MS 4
+#define AIR_DIAGNOSTIC_CDC 1
+#define AIR_DIAGNOSTIC_INTERVAL_MS 100
 
 static absolute_time_t next_io4_report;
 static absolute_time_t next_air_diagnostic;

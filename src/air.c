@@ -8,116 +8,96 @@
 #include "hardware/gpio.h"
 #include "pico/stdlib.h"
 
-#define AIR_PHASE_COUNT 3u
+#define IR_PHASES 3
 
-/*
- * Phase order:
- *   A = index 0
- *   B = index 1
- *   C = index 2
- */
-static const uint8_t IR_LEFT_ABC[AIR_PHASE_COUNT] = {
-    6u,  /* Left A */
-    7u,  /* Left B */
-    8u,  /* Left C */
-};
+// ADC GPIO Assignments
+// If you're changing this, change IR_SIGNAL_ADC too.
+#define ADC_LEFT 29
+#define ADC_RIGHT 28
 
-static const uint8_t IR_RIGHT_ABC[AIR_PHASE_COUNT] = {
-    27u, /* Right A */
-    26u, /* Right B */
-    15u, /* Right C */
-};
+// IR Phase Pin Assignments for each side
+// Goes like { A, B, C }
+static const uint8_t IR_LEFT_CHANNEL[IR_PHASES] = { 6, 7, 8 };
 
-/*
- * GP29 = ADC3 = left signal
- * GP28 = ADC2 = right signal
- */
-static const uint8_t IR_SIGNAL_ADC[2] = {
-    3u,
-    2u,
-};
+static const uint8_t IR_RIGHT_CHANNEL[IR_PHASES] = { 27, 26, 15 };
+
+// ADC Pin Assignments
+// GP29 = ADC3 = left signal
+// GP28 = ADC2 = right signal
+static const uint8_t IR_SIGNAL_ADC[2] = { 3, 2 };
 
 static volatile uint16_t ir_raw[IO4_AIR_CHANNEL_COUNT];
 static bool ir_blocked[IO4_AIR_CHANNEL_COUNT];
 
-static uint16_t ir_base[IO4_AIR_CHANNEL_COUNT] = {
-    3800u, 3800u,
-    3800u, 3800u,
-    3800u, 3800u,
+static uint16_t ir_baselines[IO4_AIR_CHANNEL_COUNT] = {
+    3800, 3800,
+    3800, 3800,
+    3800, 3800,
 };
 
-static const uint8_t IR_TRIGGER_PERCENT = 17u;
+static const uint8_t IR_TRIGGER_PERCENT = 17;
 
-#define IR_DEBOUNCE_PERCENT 90u
+#define IR_DEBOUNCE_PERCENT 90
 
 static uint8_t current_phase;
 static volatile uint8_t published_bitmap;
 
 static void emitters_off(void)
 {
-    for (uint8_t phase = 0u; phase < AIR_PHASE_COUNT; ++phase) {
-        gpio_put(IR_LEFT_ABC[phase], false);
-        gpio_put(IR_RIGHT_ABC[phase], false);
+    for (uint8_t phase = 0; phase < IR_PHASES; ++phase) {
+        gpio_put(IR_LEFT_CHANNEL[phase], false);
+        gpio_put(IR_RIGHT_CHANNEL[phase], false);
     }
 }
 
-/*
- * Read one A/B/C phase.
- */
+// Read IR Phases
+// Since we are using 2 seperate pins instead of a unified one,
+// We need to iterate through 2 pins at a time
 static void ir_read(void)
 {
     const uint8_t phase = current_phase;
 
-    /*
-     * Activate the same phase on both air towers.
-     *
-     * This is the only intentional scanning difference from the
-     * unified ABC wiring in simpl-slidrr-firmware.
-     */
-    gpio_put(IR_LEFT_ABC[phase], true);
-    gpio_put(IR_RIGHT_ABC[phase], true);
+    // IR Channel ON
+    gpio_put(IR_LEFT_CHANNEL[phase], true);
+    gpio_put(IR_RIGHT_CHANNEL[phase], true);
 
     sleep_us(10);
 
-    /*
-     * Array order remains:
-     *
-     *   0 = Left A
-     *   1 = Right A
-     *   2 = Left B
-     *   3 = Right B
-     *   4 = Left C
-     *   5 = Right C
-     */
-    for (uint8_t side = 0u; side < 2u; ++side) {
+    // Read raw ADC value.
+    // Every even number is the left side
+    // Every odd number is the right side
+    // {0, 1, 2, 3, 4, 5}
+    for (uint8_t side = 0; side < 2; ++side) {
         adc_select_input(IR_SIGNAL_ADC[side]);
         sleep_us(2);
 
-        ir_raw[(phase * 2u) + side] = adc_read();
+        ir_raw[(phase * 2) + side] = adc_read();
     }
 
-    gpio_put(IR_LEFT_ABC[phase], false);
-    gpio_put(IR_RIGHT_ABC[phase], false);
+    // IR Channel OFF
+    gpio_put(IR_LEFT_CHANNEL[phase], false);
+    gpio_put(IR_RIGHT_CHANNEL[phase], false);
 
-    current_phase = (uint8_t)((phase + 1u) % AIR_PHASE_COUNT);
+    current_phase = (uint8_t)((phase + 1) % IR_PHASES);
 }
 
-/*
- * Apply the same threshold and hysteresis calculation used by
- * simpl-slidrr-firmware.
- */
+// Only the agent and god knows what's happening here
+// Maybe even only god now.
+// Taken from my other firmware.. which is adapted from whowe's firmware.
 static void ir_judge(void)
 {
-    uint8_t bitmap = 0u;
+    uint8_t bitmap = 0;
 
-    for (uint8_t channel = 0u;
+    for (uint8_t channel = 0;
          channel < IO4_AIR_CHANNEL_COUNT;
          ++channel) {
         const int offset =
-            (int)ir_base[channel] - (int)ir_raw[channel];
+            (int)ir_baselines
+        [channel] - (int)ir_raw[channel];
 
         int threshold =
-            ((int)ir_base[channel] * IR_TRIGGER_PERCENT) / 100;
+            ((int)ir_baselines
+        [channel] * IR_TRIGGER_PERCENT) / 100;
 
         if (ir_blocked[channel]) {
             threshold =
@@ -127,45 +107,46 @@ static void ir_judge(void)
         ir_blocked[channel] = offset >= threshold;
 
         if (ir_blocked[channel]) {
-            bitmap |= (uint8_t)(1u << channel);
+            bitmap |= (uint8_t)(1 << channel);
         }
     }
 
     published_bitmap = bitmap;
 }
 
+// IR Tower Initialization
 void air_sensor_init(void)
 {
-    for (uint8_t phase = 0u; phase < AIR_PHASE_COUNT; ++phase) {
-        gpio_init(IR_LEFT_ABC[phase]);
-        gpio_set_dir(IR_LEFT_ABC[phase], GPIO_OUT);
-        gpio_put(IR_LEFT_ABC[phase], false);
+    for (uint8_t phase = 0; phase < IR_PHASES; ++phase) {
+        gpio_init(IR_LEFT_CHANNEL[phase]);
+        gpio_set_dir(IR_LEFT_CHANNEL[phase], GPIO_OUT);
+        gpio_put(IR_LEFT_CHANNEL[phase], false);
         gpio_set_drive_strength(
-            IR_LEFT_ABC[phase],
+            IR_LEFT_CHANNEL[phase],
             GPIO_DRIVE_STRENGTH_12MA
         );
 
-        gpio_init(IR_RIGHT_ABC[phase]);
-        gpio_set_dir(IR_RIGHT_ABC[phase], GPIO_OUT);
-        gpio_put(IR_RIGHT_ABC[phase], false);
+        gpio_init(IR_RIGHT_CHANNEL[phase]);
+        gpio_set_dir(IR_RIGHT_CHANNEL[phase], GPIO_OUT);
+        gpio_put(IR_RIGHT_CHANNEL[phase], false);
         gpio_set_drive_strength(
-            IR_RIGHT_ABC[phase],
+            IR_RIGHT_CHANNEL[phase],
             GPIO_DRIVE_STRENGTH_12MA
         );
     }
 
     adc_init();
 
-    adc_gpio_init(29u);
-    adc_gpio_init(28u);
+    adc_gpio_init(ADC_LEFT);
+    adc_gpio_init(ADC_RIGHT);
 
     emitters_off();
 
     memset((void *)ir_raw, 0, sizeof(ir_raw));
     memset(ir_blocked, 0, sizeof(ir_blocked));
 
-    current_phase = 0u;
-    published_bitmap = 0u;
+    current_phase = 0;
+    published_bitmap = 0;
 }
 
 bool air_sensor_capture_baselines(
@@ -175,15 +156,11 @@ bool air_sensor_capture_baselines(
         return false;
     }
 
-    /*
-     * main.c performs calibration before core 1 starts, so obtain one
-     * complete A/B/C refresh here before capturing the values.
-     */
-    for (uint8_t phase = 0u; phase < AIR_PHASE_COUNT; ++phase) {
+    for (uint8_t phase = 0; phase < IR_PHASES; ++phase) {
         ir_read();
     }
 
-    for (uint8_t channel = 0u;
+    for (uint8_t channel = 0;
          channel < IO4_AIR_CHANNEL_COUNT;
          ++channel) {
         baselines[channel] = ir_raw[channel];
@@ -200,14 +177,15 @@ void air_sensor_set_baselines(
         return;
     }
 
-    for (uint8_t channel = 0u;
+    for (uint8_t channel = 0;
          channel < IO4_AIR_CHANNEL_COUNT;
          ++channel) {
-        ir_base[channel] = baselines[channel];
+        ir_baselines
+    [channel] = baselines[channel];
         ir_blocked[channel] = false;
     }
 
-    published_bitmap = 0u;
+    published_bitmap = 0;
 }
 
 uint8_t air_sensor_blocked_bitmap(void)
@@ -218,7 +196,7 @@ uint8_t air_sensor_blocked_bitmap(void)
 uint16_t air_sensor_raw_value(uint8_t channel)
 {
     if (channel >= IO4_AIR_CHANNEL_COUNT) {
-        return 0u;
+        return 0;
     }
 
     return ir_raw[channel];

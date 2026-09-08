@@ -20,10 +20,10 @@
 #define DEFAULT_BAUD_RATE 115200u
 
 // Must be a power of two.
-#define RING_CAPACITY 1024u
+#define RING_CAPACITY 1024
 #define RING_MASK (RING_CAPACITY - 1u)
 
-#define TRANSFER_BUDGET 64u
+#define TRANSFER_BUDGET 64
 
 typedef struct {
     uint8_t data[RING_CAPACITY];
