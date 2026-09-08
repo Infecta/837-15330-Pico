@@ -96,7 +96,7 @@ I won't lie, I forgot why I even placed the footprint they way I did.
 But the RP2040 chip is facing **upwards** so please keep that in mind.
 
 <img src="./guide-media/RP2040-Zero-Topside.png" alt="RP2040 TopSide" height="200" />
-<img src="./guide-media/RP2040-Zero-BottomSide.png" alt="RP2040 TopSide" height="200" />
+<img src="./guide-media/RP2040-Zero-Bottomside.png" alt="RP2040 TopSide" height="200" />
 
 ### Flashing the firmware
 ---
