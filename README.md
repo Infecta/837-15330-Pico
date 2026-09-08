@@ -69,7 +69,7 @@ Q --> |YES|LED(Parse LED Data) --> LEDS
 
 ## Notes
 
-The chu_pico airs drawing around ~878mA per emitter with 0.75ohm resistor (If we were to follow whowe's guide for the airs). Either due to the WaveShare RP2040 zero's 3v3 regulator or general power budget **it is too high** and UART will fail as there is not enough power to go around for the PSoCs and possibly the LEDs.
+The chu_pico airs draw around ~878mA per emitter with 0.75ohm resistor (If we were to follow whowe's guide for the airs). Either due to the WaveShare RP2040 zero's 3v3 regulator or general power budget **it is too high** and UART will fail as there is not enough power to go around for the PSoCs and possibly the LEDs.
 
 > **WARNING**
 >
