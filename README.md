@@ -21,6 +21,12 @@ With this project, since we are using the same PSoCs as the official ground slid
 - CAD Files for the case including the Fusion360 project
 - Firmware for the RP2040 Zero
 
+> [!Agentic AI usage disclosure]
+>
+> A huge chunk of the code was provided by an AI agent. This only applies to the firmware for the RP2040 Zero.
+>
+> You may experience weird issues, whacky edge cases that might happen.
+
 **Hardware Architecture**
 ---
 The main CY8C22345 communicates to the RP2040 through UART. The firmware will pass those commands transparently unless it's an LED packet in which case, will be parsed by the RP2040 itself to drive the LEDs   
@@ -71,9 +77,10 @@ Q --> |YES|LED(Parse LED Data) --> LEDS
 
 The chu_pico airs draw around ~878mA per emitter with 0.75ohm resistor (If we were to follow whowe's guide for the airs). Either due to the WaveShare RP2040 zero's 3v3 regulator or general power budget **it is too high** and UART will fail as there is not enough power to go around for the PSoCs and possibly the LEDs.
 
-> **[!WARNING]**
+> [!WARNING]
 >
-> Using the airs as-is with the 0.75ohm resistors **may** burn out the 3v3 regulator as it can get **very** hot. 
+> Using the airs as-is with the 0.75ohm resistors **may** burn out the 3v3 regulator as it can get **very** hot.
+> 
 
 I suggest using a 50ohm or 100ohm resistor instead. This drops the emitter amperage draw to about ~40mA and ~21mA respectively.
 Peak for a single IR phase (2 IR Emitters) would be ~80mA and ~42mA respectively too, which is well within the budget
