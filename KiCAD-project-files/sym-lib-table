@@ -1,0 +1,5 @@
+(sym_lib_table
+	(version 7)
+	(lib (name "RP2040-Zero") (type "KiCad") (uri "${KIPRJMOD}/libraries/RP2040-Zero.kicad_sym") (options "") (descr ""))
+	(lib (name "Cypress-Infineon-PSoC1") (type "KiCad") (uri "${KIPRJMOD}/libraries/Cypress-Infineon-PSoC1.kicad_sym") (options "") (descr ""))
+)

@@ -1,0 +1,1 @@
+RP2040-Zero Model - https://www.waveshare.com/wiki/RP2040-Zero

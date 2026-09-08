@@ -1,0 +1,5 @@
+(fp_lib_table
+	(version 7)
+	(lib (name "slidrr-touchslider") (type "KiCad") (uri "${KIPRJMOD}/libraries/slidrr-touchslider.pretty") (options "") (descr ""))
+	(lib (name "RP2040-Zero") (type "KiCad") (uri "${KIPRJMOD}/libraries/RP2040-Zero.pretty") (options "") (descr ""))
+)
