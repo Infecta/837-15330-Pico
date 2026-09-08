@@ -1,0 +1,12 @@
+.program sk6812
+.side_set 1
+
+; 8 MHz PIO clock: 1.25 us per bit.
+.wrap_target
+bitloop:
+    out x, 1        side 0 [3]
+    jmp !x do_zero  side 1 [2]
+    jmp bitloop     side 1 [2]
+do_zero:
+    nop             side 0 [2]
+.wrap
