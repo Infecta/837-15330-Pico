@@ -21,7 +21,9 @@ With this project, since we are using the same PSoCs as the official ground slid
 - CAD Files for the case including the Fusion360 project
 - Firmware for the RP2040 Zero
 
-> [!Agentic AI usage disclosure]
+> [!WARNING]
+>
+> **Agentic AI usage disclosure**
 >
 > A huge chunk of the code was provided by an AI agent. This only applies to the firmware for the RP2040 Zero.
 >
