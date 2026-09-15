@@ -1,4 +1,10 @@
-# slidrr-PSoC
+> [!WARNING]
+>
+> This repo is still a work-in-progress state
+>
+> Some things might be missing until I can finish up on my side.
+
+# slidrr-PSoC / 837-15330-Pico
 An attempt at a recreation of the official CHUNITHM Ground Slider for home use.
 
 This project aims to use the same hardware* and firmware of the real ground slider for a more accurate and _faithful_ recreation of CHUNITHM's ground slider input.
