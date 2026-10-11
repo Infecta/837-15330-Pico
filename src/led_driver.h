@@ -2,6 +2,7 @@
 #define LED_DRIVER_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "sega_protocol.h"
 
@@ -12,4 +13,7 @@ void led_driver_task(void);
 void led_driver_set_solid(uint8_t red,
     uint8_t green,
     uint8_t blue);
+bool led_driver_set_brightness(uint8_t percent);
+uint8_t led_driver_brightness(void);
+uint16_t led_driver_power_budget_ma(void);
 #endif

@@ -77,6 +77,13 @@ Q --> |YES|LED(Parse LED Data) --> LEDS
 
 ## Notes
 
+> [!WARNING]
+>
+> If you have fabricated a PCB before 11th October 2026; Bridge Pin 11 and 12 of U2's pins. I discovered the controller stopped working seemingly out of nowhere due to the floating UART pins on the 2nd PSoC. Huge thanks to @somewhatlurker from the Cons&Stuff discord for helping me troubleshoot this.
+> 
+
+<img src="./guide-media/bridge-u2-pins.jpg" alt="brige-u2" height="200">
+
 The chu_pico airs draw around ~878mA per emitter with 0.75ohm resistor (If we were to follow whowe's guide for the airs). Either due to the WaveShare RP2040 zero's 3v3 regulator or general power budget **it is too high** and UART will fail as there is not enough power to go around for the PSoCs and possibly the LEDs.
 
 > [!WARNING]

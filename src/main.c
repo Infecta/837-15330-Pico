@@ -2,18 +2,21 @@
 #include <stdio.h>
 #include "bsp/board.h"
 #include "hardware/gpio.h"
+#include "pico/bootrom.h"
 #include "pico/multicore.h"
 #include "pico/stdlib.h"
 #include "tusb.h"
 #include "air.h"
 #include "calibration.h"
+#include "controller_control.h"
 #include "io4.h"
 #include "led_driver.h"
 #include "uart_bridge.h"
 #include "usb_descriptors.h"
 
 #define TEST_PIN 4
-#define IO4_REPORT_INTERVAL_MS 4
+#define SERVICE_PIN 5
+#define IO4_REPORT_INTERVAL_MS 1
 #define AIR_DIAGNOSTIC_CDC 1
 #define AIR_DIAGNOSTIC_INTERVAL_MS 100
 
@@ -84,9 +87,29 @@ int main(void) {
     uint16_t baselines[IO4_AIR_CHANNEL_COUNT];
 
     board_init();
+
+    gpio_init(SERVICE_PIN);
+    gpio_set_dir(SERVICE_PIN, GPIO_IN);
+    gpio_pull_up(SERVICE_PIN);
+
+    /* Allow the pull-up to settle and debounce the bootloader request. */
+    sleep_ms(25);
+    if (!gpio_get(SERVICE_PIN)) {
+        sleep_ms(25);
+        if (!gpio_get(SERVICE_PIN)) {
+            reset_usb_boot(0, 0);
+        }
+    }
+
     air_sensor_init();
     led_driver_init();
 
+    bool saved_calibration = false;
+    bool restored = controller_control_restore_after_reboot(baselines);
+    if (restored) {
+        air_sensor_set_baselines(baselines);
+        saved_calibration = true;
+    }
     if (calibration_requested()) {
         /*
          * Continuously scan for two seconds while the towers are clear.
@@ -106,6 +129,7 @@ int main(void) {
         if (air_sensor_capture_baselines(baselines) &&
             calibration_save(baselines)) {
             air_sensor_set_baselines(baselines);
+            saved_calibration = true;
     
             /* Green remains until game LED traffic replaces it. */
             led_driver_set_solid(0, 255, 0);
@@ -114,9 +138,11 @@ int main(void) {
         /*
          * Leave the display red when capture or flash saving fails.
          */
-    } else if (calibration_load(baselines)) {
+    } else if (!restored && calibration_load(baselines)) {
         air_sensor_set_baselines(baselines);
+        saved_calibration = true;
     }
+    controller_control_init(saved_calibration);
 
     uart_bridge_init();
     io4_init( & io4_state);
@@ -135,6 +161,7 @@ int main(void) {
         air_diagnostic_task();
 
         io4_set_test_pressed( & io4_state, !gpio_get(TEST_PIN));
+        io4_set_service_pressed( & io4_state, !gpio_get(SERVICE_PIN));
 
         io4_set_air_blocked( &
             io4_state,
@@ -155,6 +182,7 @@ int main(void) {
                 delayed_by_ms(next_io4_report, IO4_REPORT_INTERVAL_MS);
         }
 
+        controller_control_task();
         tight_loop_contents();
     }
 }
@@ -164,7 +192,12 @@ uint16_t tud_hid_get_report_cb(uint8_t instance,
     hid_report_type_t report_type,
     uint8_t * buffer,
     uint16_t requested_length) {
-    (void) instance;
+    if (instance == CONTROL_HID_INSTANCE) {
+        if (report_id == CONTROL_REPORT_ID && report_type == HID_REPORT_TYPE_INPUT)
+            return controller_control_report(buffer, requested_length);
+        return 0;
+    }
+    if (instance != 0) return 0;
 
     if (report_id != IO4_REPORT_ID_INPUT ||
         report_type != HID_REPORT_TYPE_INPUT ||
@@ -187,7 +220,12 @@ void tud_hid_set_report_cb(uint8_t instance,
     hid_report_type_t report_type,
     const uint8_t * buffer,
         uint16_t buffer_size) {
-    (void) instance;
+    if (instance == CONTROL_HID_INSTANCE) {
+        if (report_type == HID_REPORT_TYPE_OUTPUT)
+            controller_control_receive(report_id, buffer, buffer_size);
+        return;
+    }
+    if (instance != 0) return;
 
     if (report_type != HID_REPORT_TYPE_OUTPUT || buffer == NULL) {
         return;

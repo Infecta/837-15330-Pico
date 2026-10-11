@@ -17,7 +17,7 @@
 #define LED_PIO_CLOCK_HZ 8000000.0f
 
 // Safe temporary limit while LEDs are powered from USB VBUS.
-#define LED_POWER_BUDGET_MA 100
+#define LED_POWER_BUDGET_MA 200
 #define LED_IDLE_CURRENT_MA 1
 #define LED_CHANNEL_CURRENT_MA 12
 
@@ -33,7 +33,17 @@ typedef enum {
 static uint32_t dma_pixels[LED_COUNT];
 static uint32_t pending_pixels[LED_COUNT];
 
+static uint8_t brightness_percent = 100;
 static bool pending_frame = false;
+
+bool led_driver_set_brightness(uint8_t percent) {
+    if (percent > 100) return false;
+    brightness_percent = percent;
+    pending_frame = true; // Reapply to the retained, unscaled last game frame.
+    return true;
+}
+uint8_t led_driver_brightness(void) { return brightness_percent; }
+uint16_t led_driver_power_budget_ma(void) { return LED_POWER_BUDGET_MA; }
 static led_state_t state;
 static absolute_time_t deadline;
 
@@ -176,7 +186,15 @@ void led_driver_task(void) {
     memcpy(dma_pixels, pending_pixels, sizeof(dma_pixels));
     pending_frame = false;
 
+    // Apply the user ceiling after power limiting: 50% also dims a capped frame.
     limit_power(dma_pixels);
+    for (unsigned i = 0; i < LED_COUNT; ++i) {
+        uint32_t p = dma_pixels[i];
+        uint32_t g = ((p >> 24) & 255) * brightness_percent / 100;
+        uint32_t r = ((p >> 16) & 255) * brightness_percent / 100;
+        uint32_t b = ((p >> 8) & 255) * brightness_percent / 100;
+        dma_pixels[i] = (g << 24) | (r << 16) | (b << 8);
+    }
 
     dma_channel_set_read_addr(
         led_dma_channel,

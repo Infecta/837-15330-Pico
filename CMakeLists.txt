@@ -15,6 +15,7 @@ add_executable(chunithm_pico_bridge
     src/io4.c
     src/air.c
     src/calibration.c
+    src/controller_control.c
 )
 
 target_include_directories(chunithm_pico_bridge PRIVATE src)
@@ -36,6 +37,7 @@ target_link_libraries(chunithm_pico_bridge PRIVATE
     tinyusb_board
     hardware_flash
     hardware_sync
+    hardware_watchdog
 )
 
 pico_enable_stdio_usb(chunithm_pico_bridge 0)

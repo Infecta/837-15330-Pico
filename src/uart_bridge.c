@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "hardware/irq.h"
+#include "hardware/sync.h"
 #include "hardware/uart.h"
 #include "pico/stdlib.h"
 #include "tusb.h"
@@ -20,7 +21,8 @@
 #define DEFAULT_BAUD_RATE 115200u
 
 // Must be a power of two.
-#define RING_CAPACITY 1024
+// 8191 usable bytes: about 711 ms at continuous 115200/8N1.
+#define RING_CAPACITY 8192
 #define RING_MASK (RING_CAPACITY - 1u)
 
 #define TRANSFER_BUDGET 64
@@ -48,10 +50,9 @@ static byte_ring_t usb_to_uart;
 static sega_protocol_t led_parser;
 static uint32_t led_frame[LED_COUNT];
 
-static uint32_t active_baud_rate = DEFAULT_BAUD_RATE;
-static uint8_t active_data_bits = 8;
-static uint8_t active_stop_bits = 1;
-static uart_parity_t active_parity = UART_PARITY_NONE;
+static volatile uart_bridge_stats_t bridge_stats;
+static volatile bool session_active;
+static bool host_dtr;
 
 static bool ring_push(byte_ring_t *ring, uint8_t value) {
     uint32_t next = (ring->head + 1) & RING_MASK;
@@ -61,6 +62,7 @@ static bool ring_push(byte_ring_t *ring, uint8_t value) {
     }
 
     ring->data[ring->head] = value;
+    __dmb(); // Publish the byte before the ISR/main-loop shared head.
     ring->head = next;
 
     return true;
@@ -72,6 +74,7 @@ static bool ring_pop(byte_ring_t *ring, uint8_t *value) {
     }
 
     *value = ring->data[ring->tail];
+    __dmb();
     ring->tail = (ring->tail + 1) & RING_MASK;
 
     return true;
@@ -87,10 +90,23 @@ static uint32_t ring_free(const byte_ring_t *ring) {
  */
 static void cy8c_uart_rx_irq(void) {
     while (uart_is_readable(CY8C_UART)) {
-        uint8_t byte = uart_getc(CY8C_UART);
-
-        // Later you can add a dropped-byte counter here if this returns false.
-        ring_push(&uart_to_usb, byte);
+        uint32_t sample = uart_get_hw(CY8C_UART)->dr;
+        if (sample & UART_UARTDR_OE_BITS) {
+            // Indicates prior loss; the current byte may still be valid.
+            bridge_stats.rx_overrun_flags++;
+        }
+        if (sample & UART_UARTDR_FE_BITS) bridge_stats.rx_framing_errors++;
+        if (sample & UART_UARTDR_PE_BITS) bridge_stats.rx_parity_errors++;
+        if (sample & UART_UARTDR_BE_BITS) bridge_stats.rx_breaks++;
+        if (!session_active ||
+            (sample & (UART_UARTDR_FE_BITS | UART_UARTDR_PE_BITS |
+                       UART_UARTDR_BE_BITS))) {
+            bridge_stats.rx_discarded++;
+            continue;
+        }
+        if (!ring_push(&uart_to_usb, (uint8_t)sample)) {
+            bridge_stats.rx_overflow++;
+        }
     }
 }
 
@@ -111,6 +127,55 @@ void uart_bridge_init(void) {
 
     // Enable receive interrupts only. TX remains main-loop driven.
     uart_set_irq_enables(CY8C_UART, true, false);
+}
+
+/* Core 0 only. Abort queues from the old session, including the UART FIFOs.
+ * DTR is optional: some slider clients use CDC without asserting it.
+ */
+static void reset_session(bool active) {
+    irq_set_enabled(CY8C_UART_IRQ, false);
+    session_active = false;
+    bridge_stats.rx_discarded +=
+        (uart_to_usb.head - uart_to_usb.tail) & RING_MASK;
+    bridge_stats.tx_discarded +=
+        (usb_to_uart.head - usb_to_uart.tail) & RING_MASK;
+    uart_to_usb.head = uart_to_usb.tail = 0;
+    usb_to_uart.head = usb_to_uart.tail = 0;
+    sega_protocol_reset(&led_parser);
+    // uart_init resets the peripheral, removing stale RX and queued TX.
+    uart_init(CY8C_UART, DEFAULT_BAUD_RATE);
+    uart_set_hw_flow(CY8C_UART, false, false);
+    uart_set_irq_enables(CY8C_UART, true, false);
+    tud_cdc_n_read_flush(0);
+    tud_cdc_n_write_clear(0);
+    bridge_stats.session_resets++;
+    session_active = active;
+    irq_set_enabled(CY8C_UART_IRQ, true);
+}
+
+void tud_mount_cb(void) {
+    host_dtr = false;
+    reset_session(true);
+}
+
+void tud_umount_cb(void) {
+    host_dtr = false;
+    reset_session(false);
+}
+
+void tud_cdc_line_state_cb(uint8_t instance, bool dtr, bool rts) {
+    (void)rts;
+    if (instance == 0 && dtr != host_dtr) {
+        host_dtr = dtr;
+        reset_session(tud_mounted());
+    }
+}
+
+void uart_bridge_get_stats(uart_bridge_stats_t *stats) {
+    if (stats == NULL) return;
+    uint32_t interrupts = save_and_disable_interrupts();
+    *stats = bridge_stats;
+    restore_interrupts(interrupts);
 }
 
 static void receive_usb_bytes(void) {
@@ -184,6 +249,7 @@ static void transmit_usb_bytes(void) {
 
     if (count > 0) {
         uint32_t written = tud_cdc_write(buffer, count);
+        __dmb(); // Finish copying before allowing the ISR to reuse slots.
         uart_to_usb.tail = (uart_to_usb.tail + written) & RING_MASK;
     }
 
@@ -191,52 +257,22 @@ static void transmit_usb_bytes(void) {
 }
 
 void uart_bridge_task(void) {
+    // TinyUSB does not call umount_cb on a USB bus reset.
+    if (!tud_mounted()) {
+        if (session_active) reset_session(false);
+        return;
+    }
+    // Suspension pauses USB forwarding without starting a new session.
+    if (!tud_ready()) return;
+    if (!session_active) reset_session(true);
     receive_usb_bytes();
     transmit_uart_bytes();
     transmit_usb_bytes();
 }
 
-/*
- * slidershim's chosen COM-port settings become the CY8C UART settings.
- */
+/* The original slider UART is fixed at 115200/8N1. CDC settings are cosmetic. */
 void tud_cdc_line_coding_cb(uint8_t instance,
                             cdc_line_coding_t const *line_coding) {
-    if (instance != 0 || line_coding == NULL) {
-        return;
-    }
-
-    if (line_coding->bit_rate < 9600 ||
-        line_coding->bit_rate > 1000000) {
-        return;
-    }
-
-    uint data_bits = line_coding->data_bits;
-    if (data_bits < 5 || data_bits > 8) {
-        data_bits = 8;
-    }
-
-    uint stop_bits = line_coding->stop_bits == 2 ? 2 : 1;
-
-    uart_parity_t parity = UART_PARITY_NONE;
-
-    if (line_coding->parity == 1) {
-        parity = UART_PARITY_ODD;
-    } else if (line_coding->parity == 2) {
-        parity = UART_PARITY_EVEN;
-    }
-
-    if (line_coding->bit_rate != active_baud_rate) {
-        uart_set_baudrate(CY8C_UART, line_coding->bit_rate);
-        active_baud_rate = line_coding->bit_rate;
-    }
-
-    if (data_bits != active_data_bits ||
-        stop_bits != active_stop_bits ||
-        parity != active_parity) {
-        uart_set_format(CY8C_UART, data_bits, stop_bits, parity);
-
-        active_data_bits = data_bits;
-        active_stop_bits = stop_bits;
-        active_parity = parity;
-    }
+    (void)instance;
+    (void)line_coding;
 }

@@ -122,9 +122,9 @@ void io4_build_input_report(const io4_state_t *state,
     // Air inputs are active-low
     // Don't ask me what they do because I don't know either lol
     static const uint16_t air_button_map[IO4_AIR_CHANNEL_COUNT][2] = {
-        {0, 1 << 11}, // Left A
+        {0, 1 << 12}, // Left A -> air input 3
         {1 << 11, 0}, // Right A
-        {0, 1 << 12}, // Left B
+        {0, 1 << 11}, // Left B -> air input 1
         {1 << 12, 0}, // Right B
         {0, 1 << 13}, // Left C
         {1 << 13, 0}, // Right C

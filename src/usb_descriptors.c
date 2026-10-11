@@ -16,7 +16,7 @@ static const tusb_desc_device_t device_descriptor = {
 
     .idVendor = 0x0ca3,
     .idProduct = 0x0021,
-    .bcdDevice = 0x0101,
+    .bcdDevice = 0x0102,
 
     .iManufacturer = 1,
     .iProduct = 2,
@@ -28,18 +28,21 @@ static const uint8_t io4_report_descriptor[] = {
     IO4_REPORT_DESCRIPTOR,
 };
 
+static const uint8_t control_report_descriptor[] = { CONTROL_REPORT_DESCRIPTOR };
+
 enum {
     INTERFACE_IO4_HID = 0,
     INTERFACE_SLIDER_CDC_CONTROL,
     INTERFACE_SLIDER_CDC_DATA,
     INTERFACE_DIAGNOSTIC_CDC_CONTROL,
     INTERFACE_DIAGNOSTIC_CDC_DATA,
+    INTERFACE_CONTROL_HID,
     INTERFACE_COUNT,
 };
 
 #define CONFIGURATION_TOTAL_LENGTH \
     (TUD_CONFIG_DESC_LEN + TUD_HID_INOUT_DESC_LEN + TUD_CDC_DESC_LEN + \
-     TUD_CDC_DESC_LEN)
+     TUD_CDC_DESC_LEN + TUD_HID_INOUT_DESC_LEN)
 
 #define ENDPOINT_HID_OUT 0x01
 #define ENDPOINT_HID_IN  0x81
@@ -92,6 +95,10 @@ static const uint8_t configuration_descriptor[] = {
         ENDPOINT_DIAGNOSTIC_IN,
         64
     ),
+    TUD_HID_INOUT_DESCRIPTOR(
+        INTERFACE_CONTROL_HID, 7, HID_ITF_PROTOCOL_NONE,
+        sizeof(control_report_descriptor), 0x04, 0x86, 64, 5
+    ),
 };
 
 static const char *const string_descriptors[] = {
@@ -102,6 +109,7 @@ static const char *const string_descriptors[] = {
     "I/O CONTROL BD;15257;01;90;1831;6679A;00;GOUT=14_ADIN=8,E_ROTIN=4_COININ=2_SWIN=2,E_UQ1=41,6;",
     "slidrr Port",
     "slidrr Air Diagnostics",
+    "slidrr Control Deck",
 };
 
 const uint8_t *tud_descriptor_device_cb(void) {
@@ -114,8 +122,8 @@ const uint8_t *tud_descriptor_configuration_cb(uint8_t index) {
 }
 
 const uint8_t *tud_hid_descriptor_report_cb(uint8_t instance) {
-    (void)instance;
-    return io4_report_descriptor;
+    if (instance == CONTROL_HID_INSTANCE) return control_report_descriptor;
+    return instance == 0 ? io4_report_descriptor : NULL;
 }
 
 const uint16_t *tud_descriptor_string_cb(uint8_t index,
