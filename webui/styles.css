@@ -1,0 +1,295 @@
+:root {
+    /* Anchors: deep teal page, navy action, electric cyan accent */
+    --bg-page: #00171f;
+    --bg-surface: #0a2430;
+    --bg-row: #061c26;
+    --bg-input: #04151c;
+    --bg-blocked: #0a3540;
+
+    /* Borders — lifted from page so panels read without fighting the accent */
+    --border: #163846;
+    --border-row: #12303c;
+    --border-input: #1e4a56;
+
+    /* Text */
+    --text: #f2f8fa;
+    --text-muted: #7a8f97;
+    --text-on-button: #ffffff;
+
+    /* Buttons — navy that warms toward cyan on hover */
+    --btn: #001f5f;
+    --btn-hover: #0a4a9e;
+
+    /* Accent hierarchy from one cyan */
+    --accent: #2de1fc;
+    --accent-bright: #7aedff;
+    --accent-soft: #5bc4d4;
+    --accent-text: #b8f4ff;
+    --accent-glow: #2de1fc;
+    --signal: #1e4a56;
+
+    /* Status — cool-shifted so they sit with the teal/cyan base */
+    --danger: #ff8a9a;
+    --danger-bg: #3a1a24;
+    --success: #5ee0b5;
+
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+    color: var(--text);
+    background: var(--bg-page);
+    font-synthesis: none
+}
+
+* {
+    box-sizing: border-box
+}
+
+body {
+    margin: 0;
+    background: var(--bg-page)
+}
+
+main {
+    max-width: 90%;
+    margin: auto;
+    padding: 20px 24px 64px
+}
+
+section {
+    border: 1px solid var(--border);
+    background: var(--bg-surface);
+    border-radius: 18px;
+    padding: 25px;
+    margin-bottom: 20px
+}
+
+.toolbar,
+.menu-dialog {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px
+}
+
+h2 {
+    margin: 0 0 8px;
+    font-size: 1.25rem
+}
+
+p {
+    margin: 6px 0;
+    color: var(--text-muted);
+    line-height: 1.5
+}
+
+button {
+    border: 0;
+    border-radius: 11px;
+    background: var(--btn);
+    color: var(--text-on-button);
+    padding: 12px 18px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer
+}
+
+button:hover:not(:disabled) {
+    background: var(--btn-hover)
+}
+
+button:disabled {
+    cursor: not-allowed;
+    opacity: .43
+}
+
+.mainHeader {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-top: 20px;
+    margin-bottom: 20px
+}
+
+.connection,
+.setting,
+.menu-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap
+}
+
+.connection-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    min-width: 0
+}
+
+.connection {
+    justify-content: flex-end
+}
+
+.menu-dialog {
+    text-align: right
+}
+
+#message {
+    padding: 0;
+    border-radius: 7px;
+    line-height: 1.5;
+    text-align: right
+}
+
+#message.error {
+    border-color: var(--danger);
+    background: var(--danger-bg)
+}
+
+#message.success {
+    border-color: var(--success)
+}
+
+.section-heading {
+    margin-bottom: 16px;
+    text-align: center
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4px
+}
+
+.sensor-row {
+    display: grid;
+    grid-template-columns: 18px 56px minmax(0, 1fr) auto auto auto;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+    padding: 8px 14px;
+    background: var(--bg-row);
+    border: 1px solid var(--border-row);
+    border-radius: 7px;
+    transition: background-color .12s, border-color .12s, box-shadow .12s
+}
+
+.sensor-row .baseline,
+.sensor-row .trigger {
+    width: 7.5rem
+}
+
+.sensor-row .setSensor {
+    padding: 9px 14px
+}
+
+.lead-line,
+.signal-line {
+    display: block;
+    height: 2px;
+    background: var(--signal);
+    border-radius: 2px
+}
+
+.signal-line {
+    width: 100%
+}
+
+.raw {
+    font-size: 1rem;
+    font-variant-numeric: tabular-nums;
+    text-align: center
+}
+
+.sensor-row.blocked {
+    background: var(--bg-blocked);
+    border-color: var(--accent);
+    box-shadow: inset 0 0 16px color-mix(in srgb, var(--accent-glow) 17%, transparent),
+        0 0 9px color-mix(in srgb, var(--accent-glow) 10%, transparent)
+}
+
+.sensor-row.blocked .lead-line,
+.sensor-row.blocked .signal-line {
+    height: 3px;
+    background: var(--accent-bright);
+    box-shadow: 0 0 9px var(--accent), 0 0 18px color-mix(in srgb, var(--accent) 53%, transparent)
+}
+
+.sensor-row.blocked .raw {
+    color: var(--accent-text);
+    text-shadow: 0 0 12px var(--accent)
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0
+}
+
+input[type=number] {
+    width: 100%;
+    background: var(--bg-input);
+    color: var(--text-on-button);
+    border: 1px solid var(--border-input);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font: inherit;
+    -moz-appearance: textfield;
+    appearance: textfield
+}
+
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0
+}
+
+input[type=range] {
+    width: 180px;
+    accent-color: var(--accent)
+}
+
+#saveState {
+    color: var(--accent-soft)
+}
+
+@media(max-width:650px) {
+    main {
+        padding: 18px 12px
+    }
+
+    .toolbar,
+    .menu-dialog {
+        align-items: stretch;
+        flex-direction: column
+    }
+
+    .connection {
+        justify-content: flex-start
+    }
+
+    .sensor-row {
+        grid-template-columns: 14px 52px minmax(0, 1fr);
+        gap: 8px;
+        padding: 8px 10px
+    }
+
+    .sensor-row .baseline,
+    .sensor-row .trigger,
+    .sensor-row .setSensor {
+        grid-column: 1 / -1
+    }
+
+    .sensor-row .baseline,
+    .sensor-row .trigger {
+        width: 100%
+    }
+}

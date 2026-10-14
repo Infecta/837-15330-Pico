@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>837-15330-Pico | Configurator</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <main>
+    <div class="mainHeader">
+      <div class="titles">
+        <h2>837-15330-Pico | Configurator</h2>
+        <p>Also known as slidrr-psoc</p>
+      </div>
+      <div class="connection-panel">
+        <div class="connection">
+          <span id="connection">Not connected</span>
+          <button id="connect">Connect controller</button>
+        </div>
+        <div id="message" role="status"></div>
+      </div>
+    </div>
+
+    <section class="toolbar">
+      <div>
+        <h2>Maximum LED brightness</h2>
+        <p>Percentage of lights. 0% turns the lights off</p>
+      </div>
+      
+      <div class="setting"><input id="brightness" type="range" min="0" max="100" value="100" disabled>
+        <strong id="brightnessLabel">100%</strong>
+        <button id="setBrightness" disabled>Apply brightness</button>
+      </div>
+    </section>
+    <section class="menu-dialog">
+      <div class="menu-actions">
+        <button id="calibrate" disabled>Calibrate air sensors</button>
+        <button id="save" disabled>Save settings</button>
+      </div>
+      <div>
+        <strong id="saveState">Unsaved changes</strong>
+        <p>Apply settings to preserve them after reboot</p>
+      </div>
+    </section>
+
+    <section class="sensors">
+      <!-- Air status -->
+      <div class="section-heading">
+        <h2>Air status</h2>
+        <p>Raw ADC Readings</p>
+      </div>
+      <div id="channels" class="grid"></div>
+    </section>
+  </main>
+</body>
+</html>
