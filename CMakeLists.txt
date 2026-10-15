@@ -15,7 +15,7 @@ add_executable(chunithm_pico_bridge
     src/io4.c
     src/air.c
     src/calibration.c
-    src/controller_control.c
+    src/config_serial.c
 )
 
 target_include_directories(chunithm_pico_bridge PRIVATE src)
