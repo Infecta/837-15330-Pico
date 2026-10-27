@@ -18,7 +18,15 @@
 #define CY8C_TX_PIN 12
 #define CY8C_RX_PIN 13
 
-#define DEFAULT_BAUD_RATE 115200u
+/* Common 8N1 rates, fastest first. Raise UART_BAUD_STEP to go slower.
+ * The CY8C must use the same rate or slider traffic will break.
+ * 0=115200  1=57600  2=38400  3=19200  4=9600  5=4800  6=2400  7=1200
+ */
+static const uint32_t UART_BAUD_STEPS[] = {
+    115200u, 57600u, 38400u, 19200u, 9600u, 4800u, 2400u, 1200u
+};
+#define UART_BAUD_STEP 0
+#define DEFAULT_BAUD_RATE UART_BAUD_STEPS[UART_BAUD_STEP]
 
 // Must be a power of two.
 // 8191 usable bytes: about 711 ms at continuous 115200/8N1.
@@ -270,7 +278,7 @@ void uart_bridge_task(void) {
     transmit_usb_bytes();
 }
 
-/* The original slider UART is fixed at 115200/8N1. CDC settings are cosmetic. */
+/* Host CDC baud is cosmetic. The CY8C UART rate is UART_BAUD_STEP. */
 void tud_cdc_line_coding_cb(uint8_t instance,
                             cdc_line_coding_t const *line_coding) {
     (void)instance;

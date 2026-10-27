@@ -90,15 +90,14 @@ Q --> |YES|LED(Parse LED Data) --> LEDS
 
 <img src="./guide-media/bridge-u2-pins.jpg" alt="brige-u2" height="200">
 
-The chu_pico airs draw around ~878mA per emitter with 0.75ohm resistor (If we were to follow whowe's guide for the airs). Either due to the WaveShare RP2040 zero's 3v3 regulator or general power budget **it is too high** and UART will fail as there is not enough power to go around for the PSoCs and possibly the LEDs.
+The chu_pico airs draw too much power with 0.75ohm resistor (If we were to follow whowe's guide for the airs). Either due to the WaveShare RP2040 zero's 3v3 regulator or general power budget **it is too high** and there will not be enough power to go around.
 
 > [!WARNING]
 >
 > Using the airs as-is with the 0.75ohm resistors **may** burn out the 3v3 regulator as it can get **very** hot.
 > 
 
-I suggest using a 50ohm or 100ohm resistor instead. This drops the emitter amperage draw to about ~40mA and ~21mA respectively.
-Peak for a single IR phase (2 IR Emitters) would be ~80mA and ~42mA respectively too, which is well within the budget
+I suggest using a 50ohm or 100ohm resistor instead. You can almost use down to 10ohms, anything lower doesn't work.
 
 ## Build _*"guide"*_
 

@@ -1,0 +1,7 @@
+services:
+  webui:
+    build: .
+    image: slidrr-webui
+    restart: unless-stopped
+    ports:
+      - "8371:80"
